@@ -1,0 +1,5 @@
+apiVersion: v2
+name: dev-deps
+description: Local stand-ins for the managed services used in AWS (RDS, ElastiCache, SNS/SQS, an OIDC provider). Never deployed to AWS.
+type: application
+version: 0.1.0

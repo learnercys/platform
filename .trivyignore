@@ -1,0 +1,12 @@
+# Accepted findings. Each one is a decision, not an oversight.
+
+# EKS public API endpoint. It's restricted to var.cluster_admin_cidrs
+# (validated to never be 0.0.0.0/0), so AWS-0041 passes. A private-only
+# endpoint needs a VPN or bastion, which is out of scope for staging.
+AVD-AWS-0040
+
+# Node egress to 0.0.0.0/0 (from the EKS module). Nodes pull images and call
+# AWS APIs through the NAT gateway. Locking egress down needs VPC endpoints for
+# ECR, S3, STS, SQS and SNS plus a proxy for everything else; that's the
+# production hardening step.
+AVD-AWS-0104

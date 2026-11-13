@@ -1,0 +1,80 @@
+global:
+  environment: local
+  otel:
+    endpoint: http://otel-collector.observability:4318
+    sampleRatio: "1.0"
+
+image:
+  repository: event-pipeline
+  tag: local
+  pullPolicy: IfNotPresent
+
+runAsUser: 65532 # distroless "nonroot"
+
+serviceAccount:
+  name: ""
+  # In AWS: eks.amazonaws.com/role-arn for IRSA (see infra/terraform/modules/messaging)
+  annotations: {}
+
+defaultResources:
+  requests: { cpu: 25m, memory: 32Mi }
+  limits: { memory: 128Mi }
+
+# Secret every container loads with envFrom. Values here are for local
+# development; in AWS, External Secrets creates this Secret instead and
+# secretEnv is left empty.
+secretName: "{{ .Release.Name }}-env"
+secretEnv:
+  DATABASE_URL: postgres://postgres:postgres@postgres.deps:5432/pipeline?sslmode=disable
+  REDIS_URL: redis://redis.deps:6379/0
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+
+env:
+  AWS_REGION: us-east-1
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_ENDPOINT_URL: http://moto.deps:5000 # remove in AWS
+  TOPIC_ARN: arn:aws:sns:us-east-1:123456789012:payment-events
+  LEDGER_QUEUE_URL: http://moto.deps:5000/123456789012/ledger-events
+  ANALYTICS_QUEUE_URL: http://moto.deps:5000/123456789012/analytics-events
+
+components:
+  ingest:
+    command: [/app/ingest]
+    port: 8080
+    probePath: /healthz
+    replicas: 2
+    pdb: { minAvailable: 1 }
+    serviceType: NodePort
+    nodePort: 30080
+  relay:
+    command: [/app/relay]
+    # SKIP LOCKED makes extra replicas safe; one is enough locally.
+    replicas: 1
+  ledger-consumer:
+    command: [/app/ledger-consumer]
+    env:
+      QUEUE_URL: "{{ .Values.env.LEDGER_QUEUE_URL }}"
+  analytics-consumer:
+    image:
+      repository: event-pipeline-analytics
+    runAsUser: 1000
+    resources:
+      requests: { cpu: 25m, memory: 64Mi }
+      limits: { memory: 192Mi }
+    env:
+      QUEUE_URL: "{{ .Values.env.ANALYTICS_QUEUE_URL }}"
+
+# Creates the SNS topic, SQS queues and DLQs. Local only: in AWS they come
+# from Terraform (infra/terraform/modules/messaging).
+bootstrap:
+  enabled: true
+  visibilityTimeoutSeconds: 30
+  maxReceiveCount: 5
+
+migrations:
+  enabled: true
+  image: postgres:17-alpine
+  secretName: "{{ .Release.Name }}-env"
+  secretKey: DATABASE_URL
+  files: {} # filled from the service repo: --set-file migrations.files.001_init\.sql=...

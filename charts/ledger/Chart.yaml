@@ -1,0 +1,10 @@
+apiVersion: v2
+name: ledger
+description: Multi-tenant double-entry ledger (gRPC + HTTP/JSON, OIDC). https://github.com/learnercys/ledger
+type: application
+version: 0.1.0
+appVersion: "main"
+dependencies:
+  - name: service-lib
+    version: 0.1.0
+    repository: file://../service-lib

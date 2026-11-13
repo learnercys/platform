@@ -1,0 +1,53 @@
+global:
+  environment: local
+  otel:
+    endpoint: http://otel-collector.observability:4318
+    sampleRatio: "1.0"
+
+image:
+  repository: ledger
+  tag: local
+  pullPolicy: IfNotPresent
+
+runAsUser: 65532 # distroless "nonroot"
+
+serviceAccount:
+  name: ""
+  annotations: {}
+
+defaultResources:
+  requests: { cpu: 50m, memory: 32Mi }
+  limits: { memory: 128Mi }
+
+secretName: "{{ .Release.Name }}-env"
+secretEnv:
+  # The service connects as ledger_app: no BYPASSRLS, no UPDATE/DELETE on history.
+  DATABASE_URL: postgres://ledger_app:ledger_app@postgres.deps:5432/ledger?sslmode=disable
+  # Migrations run as the table owner, separately from the service.
+  MIGRATION_DATABASE_URL: postgres://postgres:postgres@postgres.deps:5432/ledger?sslmode=disable
+
+env:
+  # Tokens are issued for the public URL; keys are fetched in-cluster.
+  OIDC_ISSUER: http://localhost:58180/realms/ledger
+  OIDC_JWKS_URL: http://keycloak.deps:8080/realms/ledger/protocol/openid-connect/certs
+  OIDC_AUDIENCE: ledger-api
+
+components:
+  ledger:
+    port: 8080
+    probePath: /healthz
+    replicas: 2
+    pdb: { minAvailable: 1 }
+    serviceType: NodePort
+    nodePort: 30090
+    autoscaling:
+      enabled: false # on in AWS (values-aws.yaml)
+      minReplicas: 2
+      maxReplicas: 6
+
+migrations:
+  enabled: true
+  image: postgres:17-alpine
+  secretName: "{{ .Release.Name }}-env"
+  secretKey: MIGRATION_DATABASE_URL
+  files: {}

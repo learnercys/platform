@@ -1,0 +1,10 @@
+apiVersion: v2
+name: event-pipeline
+description: Payment-event pipeline (ingest API, outbox relay, ledger and analytics consumers). https://github.com/learnercys/event-pipeline
+type: application
+version: 0.1.0
+appVersion: "main"
+dependencies:
+  - name: service-lib
+    version: 0.1.0
+    repository: file://../service-lib

@@ -1,0 +1,50 @@
+global:
+  environment: local
+  otel:
+    endpoint: http://otel-collector.observability:4318
+    sampleRatio: "1.0"
+
+image:
+  repository: llm-gateway
+  tag: local
+  pullPolicy: IfNotPresent
+
+runAsUser: 1000 # "app" user in the image
+
+serviceAccount:
+  name: ""
+  annotations: {}
+
+defaultResources:
+  requests: { cpu: 50m, memory: 96Mi }
+  limits: { memory: 256Mi }
+
+secretName: "{{ .Release.Name }}-env"
+secretEnv:
+  DATABASE_URL: postgresql://postgres:postgres@postgres.deps:5432/gateway
+  REDIS_URL: redis://redis.deps:6379/1
+  # Provider keys: set with --set secretEnv.ANTHROPIC_API_KEY=... (or External
+  # Secrets in AWS). Without them the default route falls through to the fake provider.
+  ANTHROPIC_API_KEY: ""
+  OPENAI_API_KEY: ""
+
+env:
+  GATEWAY_CONFIG: /config/gateway.yaml
+  OPENAI_MODEL: ""
+
+# Routes, prices and tenants (the service repo's config/gateway.yaml):
+# --set-file config=...
+config: ""
+
+components:
+  gateway:
+    port: 8000
+    probePath: /healthz
+    replicas: 2
+    pdb: { minAvailable: 1 }
+    serviceType: NodePort
+    nodePort: 30000
+    configMounts:
+      - name: config
+        mountPath: /config
+        configMap: "{{ .Release.Name }}-config"

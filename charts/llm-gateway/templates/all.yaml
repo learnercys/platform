@@ -1,0 +1,10 @@
+{{- include "service-lib.all" . }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels: {{- include "service-lib.labels" (dict "root" . "name" "config") | nindent 4 }}
+data:
+  gateway.yaml: |
+    {{- required "set the gateway config with --set-file config=<path to gateway.yaml>" .Values.config | nindent 4 }}

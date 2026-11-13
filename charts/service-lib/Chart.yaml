@@ -1,0 +1,5 @@
+apiVersion: v2
+name: service-lib
+description: Shared templates for every service chart (Deployment, Service, HPA, PDB, ServiceAccount, migrations)
+type: library
+version: 0.1.0

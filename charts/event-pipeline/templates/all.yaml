@@ -1,0 +1,32 @@
+{{- include "service-lib.all" . }}
+{{- if .Values.bootstrap.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-bootstrap
+  labels: {{- include "service-lib.labels" (dict "root" . "name" "bootstrap") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels: {{- include "service-lib.labels" (dict "root" . "name" "bootstrap") | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      securityContext: {{- include "service-lib.podSecurityContext" (dict "root" . "c" dict) | nindent 8 }}
+      containers:
+        - name: bootstrap
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: [/app/bootstrap]
+          envFrom:
+            - secretRef: { name: {{ tpl .Values.secretName . }} }
+          env:
+            - { name: AWS_REGION, value: {{ .Values.env.AWS_REGION | quote }} }
+            - { name: AWS_ENDPOINT_URL, value: {{ .Values.env.AWS_ENDPOINT_URL | quote }} }
+            - { name: VISIBILITY_TIMEOUT_SECONDS, value: {{ .Values.bootstrap.visibilityTimeoutSeconds | quote }} }
+            - { name: MAX_RECEIVE_COUNT, value: {{ .Values.bootstrap.maxReceiveCount | quote }} }
+          securityContext: {{- include "service-lib.containerSecurityContext" . | nindent 12 }}
+{{- end }}

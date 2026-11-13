@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: moto
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: moto }
+  template:
+    metadata:
+      labels: { app: moto }
+    spec:
+      enableServiceLinks: false # no FOO_PORT=tcp://... env vars (they clash with MOTO_PORT etc.)
+      containers:
+        - name: moto
+          image: {{ .Values.moto.image }}
+          ports: [{ containerPort: 5000 }]
+          readinessProbe:
+            httpGet: { path: /moto-api/, port: 5000 }
+            periodSeconds: 2
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: moto
+spec:
+  type: NodePort
+  selector: { app: moto }
+  ports: [{ port: 5000, targetPort: 5000, nodePort: {{ .Values.moto.nodePort }} }]

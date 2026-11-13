@@ -1,0 +1,8 @@
+charts/*/charts/
+charts/*/Chart.lock
+infra/terraform/**/.terraform/
+infra/terraform/.tflint.d/
+*.tfstate
+*.tfstate.*
+backend.hcl
+.DS_Store

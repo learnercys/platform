@@ -1,0 +1,14 @@
+postgres:
+  image: postgres:17-alpine
+  databases: [pipeline, ledger, gateway]
+  nodePort: 30432 # host 55432
+redis:
+  image: redis:7-alpine
+moto:
+  image: motoserver/moto:5.2.5
+  nodePort: 30500 # host 55000
+keycloak:
+  image: quay.io/keycloak/keycloak:26.4
+  nodePort: 30180 # host 58180
+  publicUrl: http://localhost:58180
+  realm: "" # --set-file keycloak.realm=<ledger repo>/deploy/keycloak/ledger-realm.json

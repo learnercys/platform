@@ -1,0 +1,8 @@
+collector:
+  image: otel/opentelemetry-collector-contrib:0.165.0
+  # Where the collector sends everything. Locally: the lgtm pod below.
+  exportEndpoint: http://lgtm:4318
+lgtm:
+  enabled: true
+  image: grafana/otel-lgtm:0.40.0
+  grafanaNodePort: 30300 # host 53000

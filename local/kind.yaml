@@ -1,0 +1,17 @@
+# Local cluster. NodePorts are mapped to the same host ports each service
+# repo's own demo uses, so `./scripts/demo.sh` in ledger or llm-gateway works
+# unchanged against the cluster.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: platform
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.35.0
+    extraPortMappings:
+      - { containerPort: 30080, hostPort: 58080 } # event-pipeline ingest API
+      - { containerPort: 30090, hostPort: 58090 } # ledger
+      - { containerPort: 30000, hostPort: 58000 } # llm-gateway
+      - { containerPort: 30180, hostPort: 58180 } # keycloak
+      - { containerPort: 30300, hostPort: 53000 } # grafana
+      - { containerPort: 30432, hostPort: 55432 } # postgres (for verification tools)
+      - { containerPort: 30500, hostPort: 55000 } # moto (SNS/SQS)

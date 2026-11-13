@@ -1,0 +1,81 @@
+# One collector per node (a DaemonSet): it tails that node's pod logs, reads
+# the kubelet's CPU/memory stats, and receives OTLP from the apps on the node.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-collector
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-collector
+rules:
+  - apiGroups: [""]
+    resources: [pods, namespaces, nodes]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [nodes/stats, nodes/proxy]
+    verbs: [get]
+  - apiGroups: [apps]
+    resources: [replicasets, deployments]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-collector
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: otel-collector }
+subjects:
+  - { kind: ServiceAccount, name: otel-collector, namespace: {{ .Release.Namespace }} }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-collector
+spec:
+  selector:
+    matchLabels: { app: otel-collector }
+  template:
+    metadata:
+      labels: { app: otel-collector }
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/collector-config.yaml") . | sha256sum | trunc 16 }}
+    spec:
+      serviceAccountName: otel-collector
+      containers:
+        - name: collector
+          image: {{ .Values.collector.image }}
+          args: [--config=/conf/config.yaml]
+          env:
+            - name: K8S_NODE_NAME
+              valueFrom: { fieldRef: { fieldPath: spec.nodeName } }
+          ports:
+            - { name: otlp-grpc, containerPort: 4317 }
+            - { name: otlp-http, containerPort: 4318 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            runAsUser: 0 # reads /var/log/pods, which is root-owned on the node
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL], add: [DAC_READ_SEARCH] }
+          volumeMounts:
+            - { name: conf, mountPath: /conf }
+            - { name: varlogpods, mountPath: /var/log/pods, readOnly: true }
+      volumes:
+        - name: conf
+          configMap: { name: otel-collector }
+        - name: varlogpods
+          hostPath: { path: /var/log/pods }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+spec:
+  selector: { app: otel-collector }
+  internalTrafficPolicy: Local # apps talk to the collector on their own node
+  ports:
+    - { name: otlp-grpc, port: 4317, targetPort: 4317 }
+    - { name: otlp-http, port: 4318, targetPort: 4318 }

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: observability
+description: OpenTelemetry Collector (traces, metrics, pod logs) feeding Grafana, Prometheus, Tempo and Loki. Locally the backends are the all-in-one grafana/otel-lgtm image; in AWS the collector exports to managed backends instead.
+type: application
+version: 0.1.0
