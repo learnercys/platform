@@ -4,9 +4,9 @@
 
 ## Context
 
-The services log JSON to stdout and don't export telemetry yet. We want
-per-service resource usage and searchable logs now, and request traces later,
-without coupling the services to a particular backend.
+We want per-service resource usage, searchable logs, request metrics and
+traces that follow a payment across asynchronous hops, without coupling the
+services to a particular backend.
 
 ## Decision
 
