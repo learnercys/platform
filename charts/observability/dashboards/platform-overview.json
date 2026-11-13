@@ -1,6 +1,7 @@
 {
   "uid": "platform-overview",
   "title": "Platform overview",
+  "description": "Pod resources and logs",
   "tags": [
     "platform"
   ],
@@ -36,33 +37,27 @@
   },
   "panels": [
     {
-      "id": 1,
       "type": "text",
       "title": "",
+      "options": {
+        "mode": "markdown",
+        "content": "Resources and logs for every pod, from the OpenTelemetry Collector (kubelet stats + pod logs). Request rates, errors, latency and traces are on **Service health**."
+      },
+      "id": 2,
       "gridPos": {
         "x": 0,
         "y": 0,
         "w": 24,
         "h": 2
-      },
-      "options": {
-        "mode": "markdown",
-        "content": "Resource use and logs for the platform's services, from the OpenTelemetry Collector (kubelet stats + pod logs). Request-level traces and RED metrics appear here once the services export OTLP."
       }
     },
     {
-      "id": 2,
       "type": "stat",
       "title": "CPU (cores)",
+      "description": "",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 2,
-        "w": 6,
-        "h": 4
       },
       "fieldConfig": {
         "defaults": {
@@ -87,23 +82,25 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(k8s_pod_cpu_usage{k8s_namespace_name=~\"$namespace\"})"
+          "expr": "sum(k8s_pod_cpu_usage{k8s_namespace_name=~\"$namespace\"})",
+          "legendFormat": ""
         }
-      ]
-    },
-    {
+      ],
       "id": 3,
-      "type": "stat",
-      "title": "Memory (working set)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
       "gridPos": {
-        "x": 6,
+        "x": 0,
         "y": 2,
         "w": 6,
         "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Memory (working set)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -128,23 +125,25 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(k8s_pod_memory_working_set_bytes{k8s_namespace_name=~\"$namespace\"})"
+          "expr": "sum(k8s_pod_memory_working_set_bytes{k8s_namespace_name=~\"$namespace\"})",
+          "legendFormat": ""
         }
-      ]
-    },
-    {
+      ],
       "id": 4,
-      "type": "stat",
-      "title": "Network in",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
       "gridPos": {
-        "x": 12,
+        "x": 6,
         "y": 2,
         "w": 6,
         "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Network in",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -169,28 +168,30 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(k8s_pod_network_io_bytes_total{k8s_namespace_name=~\"$namespace\",direction=\"receive\"}[2m]))"
+          "expr": "sum(rate(k8s_pod_network_io_bytes_total{k8s_namespace_name=~\"$namespace\",direction=\"receive\"}[2m]))",
+          "legendFormat": ""
         }
-      ]
+      ],
+      "id": 5,
+      "gridPos": {
+        "x": 12,
+        "y": 2,
+        "w": 6,
+        "h": 4
+      }
     },
     {
-      "id": 5,
       "type": "stat",
       "title": "Warnings + errors / min",
+      "description": "",
       "datasource": {
         "type": "loki",
         "uid": "loki"
       },
-      "gridPos": {
-        "x": 18,
-        "y": 2,
-        "w": 6,
-        "h": 4
-      },
       "fieldConfig": {
         "defaults": {
           "unit": "none",
-          "decimals": 2
+          "decimals": 0
         },
         "overrides": []
       },
@@ -210,30 +211,34 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum(count_over_time({k8s_namespace_name=~\"$namespace\"} |~ `(?i)\"level\":\"(warn|warning|error)\"|level=(warn|error)|\\b(WARNING|ERROR)\\b` [1m])) or vector(0)"
+          "expr": "sum(count_over_time({k8s_namespace_name=~\"$namespace\"} |~ `(?i)\"level\":\"(warn|warning|error)\"|level=(warn|error)|\\b(WARNING|ERROR)\\b` [1m])) or vector(0)",
+          "legendFormat": ""
         }
-      ]
+      ],
+      "id": 6,
+      "gridPos": {
+        "x": 18,
+        "y": 2,
+        "w": 6,
+        "h": 4
+      }
     },
     {
-      "id": 6,
       "type": "timeseries",
       "title": "CPU by pod",
+      "description": "",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 6,
-        "w": 12,
-        "h": 8
-      },
       "fieldConfig": {
         "defaults": {
           "unit": "none",
+          "min": 0,
           "custom": {
             "lineWidth": 1,
             "fillOpacity": 10,
+            "spanNulls": true,
             "stacking": {
               "mode": "normal"
             }
@@ -265,28 +270,31 @@
           "expr": "sum by (k8s_pod_name) (k8s_pod_cpu_usage{k8s_namespace_name=~\"$namespace\"})",
           "legendFormat": "{{k8s_pod_name}}"
         }
-      ]
+      ],
+      "id": 7,
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      }
     },
     {
-      "id": 7,
       "type": "timeseries",
       "title": "Memory by pod",
+      "description": "",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {
-        "x": 12,
-        "y": 6,
-        "w": 12,
-        "h": 8
-      },
       "fieldConfig": {
         "defaults": {
           "unit": "bytes",
+          "min": 0,
           "custom": {
             "lineWidth": 1,
             "fillOpacity": 10,
+            "spanNulls": true,
             "stacking": {
               "mode": "normal"
             }
@@ -318,28 +326,31 @@
           "expr": "sum by (k8s_pod_name) (k8s_pod_memory_working_set_bytes{k8s_namespace_name=~\"$namespace\"})",
           "legendFormat": "{{k8s_pod_name}}"
         }
-      ]
+      ],
+      "id": 8,
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 12,
+        "h": 8
+      }
     },
     {
-      "id": 8,
       "type": "timeseries",
       "title": "Log lines / min by service",
+      "description": "",
       "datasource": {
         "type": "loki",
         "uid": "loki"
       },
-      "gridPos": {
-        "x": 0,
-        "y": 14,
-        "w": 12,
-        "h": 8
-      },
       "fieldConfig": {
         "defaults": {
           "unit": "none",
+          "min": 0,
           "custom": {
             "lineWidth": 1,
             "fillOpacity": 10,
+            "spanNulls": true,
             "stacking": {
               "mode": "none"
             }
@@ -371,28 +382,31 @@
           "expr": "sum by (service_name) (count_over_time({k8s_namespace_name=~\"$namespace\", service_name=~\".+\"} [1m]))",
           "legendFormat": "{{service_name}}"
         }
-      ]
+      ],
+      "id": 9,
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      }
     },
     {
-      "id": 9,
       "type": "timeseries",
       "title": "Network by namespace",
+      "description": "",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "gridPos": {
-        "x": 12,
-        "y": 14,
-        "w": 12,
-        "h": 8
-      },
       "fieldConfig": {
         "defaults": {
           "unit": "Bps",
+          "min": 0,
           "custom": {
             "lineWidth": 1,
             "fillOpacity": 10,
+            "spanNulls": true,
             "stacking": {
               "mode": "none"
             }
@@ -424,21 +438,21 @@
           "expr": "sum by (k8s_namespace_name, direction) (rate(k8s_pod_network_io_bytes_total{k8s_namespace_name=~\"$namespace\"}[2m]))",
           "legendFormat": "{{k8s_namespace_name}} {{direction}}"
         }
-      ]
+      ],
+      "id": 10,
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      }
     },
     {
-      "id": 10,
       "type": "logs",
       "title": "Warnings and errors",
       "datasource": {
         "type": "loki",
         "uid": "loki"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 22,
-        "w": 24,
-        "h": 10
       },
       "options": {
         "showTime": true,
@@ -453,9 +467,17 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{k8s_namespace_name=~\"$namespace\"} |~ `(?i)\"level\":\"(warn|warning|error)\"|level=(warn|error)|\\b(WARNING|ERROR)\\b`"
+          "expr": "{k8s_namespace_name=~\"$namespace\"} |~ `(?i)\"level\":\"(warn|warning|error)\"|level=(warn|error)|\\b(WARNING|ERROR)\\b`",
+          "legendFormat": ""
         }
-      ]
+      ],
+      "id": 11,
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 10
+      }
     }
   ]
 }

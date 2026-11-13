@@ -10,8 +10,10 @@ Deployment and infrastructure for three services:
 - **Helm:** one hardened library chart, and a chart per service built on it
 - **Local Kubernetes:** `make up` runs all three services on kind, with
   stand-ins for the AWS managed services and a full observability stack
-- **OpenTelemetry:** one Collector pipeline for logs, metrics and traces, with
-  a provisioned Grafana dashboard
+- **OpenTelemetry:** every service is instrumented, and one Collector
+  pipeline carries logs, metrics and traces. A payment event can be followed
+  from the HTTP request through the outbox, SNS and SQS to both consumers.
+  Two provisioned Grafana dashboards are generated from code.
 - **Terraform for AWS:** VPC, EKS, RDS, ElastiCache, SNS/SQS with DLQs, ECR,
   least-privilege Pod Identity roles, and keyless GitHub → ECR pushes
 - **CI:** Helm lint, schema validation, Terraform validate + tflint, Trivy
@@ -35,7 +37,15 @@ PASS: every event was applied exactly once by every consumer
 PASS: all three services work end to end in Kubernetes
 ```
 
-![Grafana: Platform overview](docs/grafana-platform-overview.jpg)
+**One payment event, traced across four processes and two languages.** It
+goes from the ingest API through the transactional outbox, SNS and SQS to both
+consumers. Trace context rides in the outbox row and the message attributes.
+
+![Trace of one payment event in Grafana Tempo](docs/trace-payment-event.jpg)
+
+| Service health (RED, LLM usage, traces) | Platform overview (resources, logs) |
+|---|---|
+| ![Service health](docs/grafana-service-health.jpg) | ![Platform overview](docs/grafana-platform-overview.jpg) |
 
 ## What's in the cluster
 
@@ -71,7 +81,7 @@ flowchart TB
 
 | Host port | What |
 |---|---|
-| 53000 | Grafana (anonymous admin) → *Dashboards › Platform › Platform overview* |
+| 53000 | Grafana (anonymous admin) → *Dashboards › Platform* (Service health, Platform overview) |
 | 58080 | event-pipeline ingest API |
 | 58090 | ledger (gRPC + HTTP/JSON) |
 | 58180 | Keycloak (ledger tokens) |
@@ -108,12 +118,12 @@ charts/
   ledger/           RLS-enforcing app role for the service, owner role for migrations
   llm-gateway/      routes/prices/tenants config mounted from the service repo
   dev-deps/         Postgres, Redis, Moto, Keycloak: local stand-ins, never deployed to AWS
-  observability/    OTel Collector DaemonSet, otel-lgtm, Grafana dashboard
+  observability/    OTel Collector DaemonSet, otel-lgtm, Grafana dashboards
 local/kind.yaml     cluster + host port mappings
 infra/terraform/
   modules/          messaging, data, service-identity, ecr, github-oidc
   envs/staging/     VPC + EKS (community modules) wired to the modules above
-scripts/            smoke.sh, lint.sh
+scripts/            smoke.sh, lint.sh, dashboards.py (generates the dashboard JSON)
 docs/adr/           design decisions
 ```
 
@@ -123,7 +133,7 @@ docs/adr/           design decisions
 |---|---|
 | [ADR 1: one library chart](docs/adr/0001-shared-library-chart.md) | Every pod is non-root (numeric UID), has a read-only root filesystem, drops all capabilities, and gets OTel config and idempotent migrations by default. Trivy finds no HIGH/CRITICAL issues in the rendered service charts. |
 | [ADR 2: local environment mirrors AWS](docs/adr/0002-local-environment.md) | Same charts as production, with stand-ins for managed services. Running on Kubernetes found a real replica-startup race in llm-gateway, now fixed upstream with a test. |
-| [ADR 3: one OTel pipeline](docs/adr/0003-observability-pipeline.md) | Logs and resource metrics with zero service changes; the backend is swappable in one exporter block. |
+| [ADR 3: one OTel pipeline](docs/adr/0003-observability-pipeline.md) | Pod logs and resource metrics from the node, and traces and RED metrics from the instrumented services. The backend is swappable in one exporter block. |
 | [ADR 4: AWS in Terraform](docs/adr/0004-aws-with-terraform.md) | Community modules for VPC/EKS; own modules for messaging, data, identity. Pod Identity, KMS, keyless CI. Accepted Trivy findings are written down. |
 
 ## Honest status
@@ -131,10 +141,5 @@ docs/adr/           design decisions
 - **Terraform is validated, linted and security-scanned, not applied.**
   Applying it creates billable resources (roughly $350–400/month for staging
   as sized). `plan` needs an AWS account.
-- **Request traces aren't there yet.** The pipeline and environment variables
-  are in place, but the services still need OpenTelemetry SDK instrumentation:
-  HTTP and database spans, plus trace context carried through SNS/SQS so one
-  payment can be followed across all four event-pipeline processes. That's
-  the next step.
 - Not yet included: External Secrets Operator, AWS Load Balancer Controller,
   Argo CD for GitOps delivery, and VPC endpoints to remove NAT egress.

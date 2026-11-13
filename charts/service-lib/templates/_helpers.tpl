@@ -49,6 +49,12 @@ app.kubernetes.io/name: {{ .name }}
 - name: OTEL_EXPORTER_OTLP_ENDPOINT
   value: {{ . | quote }}
 {{- end }}
+- name: OTEL_EXPORTER_OTLP_PROTOCOL
+  value: http/protobuf
+# Use the stable HTTP semantic conventions (http.server.request.duration in
+# seconds) in every SDK, so dashboards can query one metric for all services.
+- name: OTEL_SEMCONV_STABILITY_OPT_IN
+  value: http
 - name: OTEL_TRACES_SAMPLER
   value: parentbased_traceidratio
 - name: OTEL_TRACES_SAMPLER_ARG

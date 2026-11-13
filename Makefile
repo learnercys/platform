@@ -65,9 +65,9 @@ observability: ## OpenTelemetry Collector + Grafana/Prometheus/Tempo/Loki
 .PHONY: apps
 apps: charts-deps ## Deploy the three services
 	$(HELM) upgrade --install event-pipeline charts/event-pipeline -n event-pipeline --create-namespace \
-		--wait --timeout 5m --set-file 'migrations.files.001_init\.sql=$(EP)/migrations/001_init.sql'
+		--wait --timeout 5m $(foreach f,$(notdir $(wildcard $(EP)/migrations/*.sql)),--set-file 'migrations.files.$(subst .,\.,$(f))=$(EP)/migrations/$(f)')
 	$(HELM) upgrade --install ledger charts/ledger -n ledger --create-namespace \
-		--wait --timeout 5m --set-file 'migrations.files.001_init\.sql=$(LEDGER)/migrations/001_init.sql'
+		--wait --timeout 5m $(foreach f,$(notdir $(wildcard $(LEDGER)/migrations/*.sql)),--set-file 'migrations.files.$(subst .,\.,$(f))=$(LEDGER)/migrations/$(f)')
 	$(HELM) upgrade --install llm-gateway charts/llm-gateway -n llm-gateway --create-namespace \
 		--wait --timeout 5m --set-file config=$(GW)/config/gateway.yaml \
 		$(if $(ANTHROPIC_API_KEY),--set secretEnv.ANTHROPIC_API_KEY=$(ANTHROPIC_API_KEY))
